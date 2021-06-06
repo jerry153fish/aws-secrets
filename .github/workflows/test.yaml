@@ -9,4 +9,3 @@ jobs:
       - name: Set uo golang
         uses: actions/setup-go@v2
       - run: make test
-      - run: echo "🍏 This job's status is ${{ job.status }}."
