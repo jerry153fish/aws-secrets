@@ -1,0 +1,9 @@
+domain: jerry153fish.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: cloudformation-secrets
+repo: github.com/jerry153fish/cloudformation-secrets
+version: "3"
