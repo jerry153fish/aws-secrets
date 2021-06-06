@@ -16,3 +16,4 @@ vendor/
 config/crd/
 config/rbac/
 testbin/
+bin/
