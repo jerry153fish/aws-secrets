@@ -1,0 +1,12 @@
+name: GitHub Tests
+on: [push]
+jobs:
+  Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Set uo golang
+        uses: actions/setup-go@v2
+      - run: make test
+      - run: echo "🍏 This job's status is ${{ job.status }}."
