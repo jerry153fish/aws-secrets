@@ -29,7 +29,21 @@ type SecretsSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Secrets. Edit secrets_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	SecretName string                 `json:"secretName,omitempty"`
+	Cfn        []CloudformationOutput `json:"cfn"`
+}
+
+type CloudformationOutput struct {
+	//+kubebuilder:validation:MinLength=1
+	StackName string `json:"stackName"`
+
+	//+kubebuilder:validation:MinLength=1
+	KeyName string `json:"key"`
+
+	//+kubebuilder:validation:MinLength=1
+	OutputKey string `json:"outputKey"`
+
+	Type string `json:"type,omitempty"`
 }
 
 // SecretsStatus defines the observed state of Secrets
