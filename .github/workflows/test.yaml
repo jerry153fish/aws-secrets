@@ -6,6 +6,14 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
-      - name: Set uo golang
+      - name: Set up golang
         uses: actions/setup-go@v2
-      - run: make test
+      - name: Run Unit tests
+        env:
+          DEFAULT_REGION: ap-northeast-1
+          AWS_ACCOUNT_ID: "000000000000"
+          AWS_ACCESS_KEY_ID: dummy-access-key
+          AWS_SECRET_ACCESS_KEY: dummy-secret-key
+        run: |
+          docker-compose -f fake-service.yaml up -d
+          make test
