@@ -15,7 +15,8 @@ func TestSecretType(t *testing.T) {
 
 var _ = Describe("CloudformationOutput", func() {
 	var (
-		cfn CloudformationOutput
+		cfn       CloudformationOutput
+		cfnString string
 	)
 	BeforeEach(func() {
 		cfn = CloudformationOutput{
@@ -24,20 +25,29 @@ var _ = Describe("CloudformationOutput", func() {
 			OutputKey: "TestDBPassword",
 		}
 
+		cfnString = `{"stackName":"syd-dev-test","key":"dbPass","outputKey":"TestDBPassword"}`
+
 	})
 
-	Describe("CloudformationOutput marshal", func() {
-		Context("Simple test without type", func() {
-			It("Should match predefined result", func() {
+	Describe("CloudformationOutput marshal/unmarshal", func() {
+		Context("Marsh Cloudformation", func() {
+			It("Should match string", func() {
 				result, _ := json.Marshal(cfn)
-				Expect(string(result)).To(Equal(`{"stackName":"syd-dev-test","key":"dbPass","outputKey":"TestDBPassword"}`))
+
+				Expect(string(result)).To(Equal(cfnString))
 			})
 		})
 
-		// Context("With fewer than 300 pages", func() {
-		//     It("should be a short story", func() {
-		//         Expect(shortBook.CategoryByLength()).To(Equal("SHORT STORY"))
-		//     })
-		// })
+		Context("Unmarsh Cloudformation", func() {
+			It("should match fields", func() {
+				var result CloudformationOutput
+				if err := json.Unmarshal([]byte(cfnString), &result); err != nil {
+					panic(err)
+				}
+				Expect(result.StackName).To(Equal("syd-dev-test"))
+				Expect(result.KeyName).To(Equal("dbPass"))
+				Expect(result.OutputKey).To(Equal("TestDBPassword"))
+			})
+		})
 	})
 })
