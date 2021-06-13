@@ -15,5 +15,7 @@ jobs:
           AWS_ACCESS_KEY_ID: dummy-access-key
           AWS_SECRET_ACCESS_KEY: dummy-secret-key
         run: |
-          docker-compose -f fake-service.yaml up -d
+          docker-compose -f scripts/fake-service.yaml up -d
+          scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
+          which aws
           make test
