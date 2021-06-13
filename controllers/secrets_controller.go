@@ -50,6 +50,10 @@ type SecretsReconciler struct {
 func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
+	slog := log.Log.WithValues("cfnSecrets", req.NamespacedName)
+
+	slog.Info("Printing at INFO level")
+
 	// your logic here
 
 	return ctrl.Result{}, nil
