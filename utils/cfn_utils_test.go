@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -32,7 +31,6 @@ var _ = Describe("Cloudformation Utils", func() {
 		Context("GetStackOutput", func() {
 			It("Should match fake s3 bucket output", func() {
 
-				fmt.Println(cf)
 				result, err := GetStackOutput(cf, "myteststack", "S3Bucket")
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal("S3Bucket"))
