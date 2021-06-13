@@ -26,11 +26,12 @@ Resources:
                 - /*
       Bucket: !Ref S3Bucket
 Outputs:
-  WebsiteURL:
-    Value: !GetAtt
-      - S3Bucket
-      - WebsiteURL
-    Description: URL for website hosted on S3
+  S3Bucket:
+    Value: "S3Bucket"
+    Description: Fake S3 Bucket Ref
+  S3TestPoint:
+    Value: "TestPoint"
+    Description: Another test point
   S3BucketSecureURL:
     Value: !Join
       - ""
