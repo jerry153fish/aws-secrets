@@ -6,6 +6,20 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
-      - name: Set uo golang
+      - name: Set up golang
         uses: actions/setup-go@v2
-      - run: make test
+      - name: Run Unit tests
+        env:
+          DEFAULT_REGION: ap-northeast-1
+          AWS_ACCOUNT_ID: "000000000000"
+          AWS_ACCESS_KEY_ID: dummy-access-key
+          AWS_SECRET_ACCESS_KEY: dummy-secret-key
+          AWS_EC2_METADATA_DISABLED: true
+          AWS_REGION: ap-northeast-1
+        run: |
+          docker-compose -f scripts/fake-service.yaml up -d
+          scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
+          mkdir build
+          aws cloudformation create-stack --endpoint-url http://localhost:4566 --stack-name myteststack --template-body file://scripts/mock-s3-cfn-template.yaml > build/create-stack-result.json
+          cat build/create-stack-result.json
+          make test
