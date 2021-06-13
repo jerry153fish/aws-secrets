@@ -3,6 +3,7 @@ on: [push]
 jobs:
   Tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -19,6 +20,10 @@ jobs:
         run: |
           docker-compose -f scripts/fake-service.yaml up -d
           scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
+          until $(curl --silent --fail http://localhost:4566/health | grep "\"cloudformation\": \"running\"" > /dev/null); do
+              printf '.'
+              sleep 5
+          done
           mkdir build
           aws cloudformation create-stack --endpoint-url http://localhost:4566 --stack-name myteststack --template-body file://scripts/mock-s3-cfn-template.yaml > build/create-stack-result.json
           cat build/create-stack-result.json

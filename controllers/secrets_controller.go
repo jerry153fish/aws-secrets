@@ -36,6 +36,7 @@ type SecretsReconciler struct {
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets/finalizers,verbs=update
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -48,6 +49,10 @@ type SecretsReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+
+	slog := log.Log.WithValues("cfnSecrets", req.NamespacedName)
+
+	slog.Info("Printing at INFO level")
 
 	// your logic here
 
