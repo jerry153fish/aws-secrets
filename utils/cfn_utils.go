@@ -3,9 +3,11 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/patrickmn/go-cache"
 )
@@ -41,4 +43,17 @@ func GetStackOutput(cf *cloudformation.CloudFormation, stackName string, outputK
 	}
 
 	return "", errors.New(fmt.Sprintf("outputKey: %s not found in stack %s", outputKey, stackName))
+}
+
+func GetCfnClient() *cloudformation.CloudFormation {
+
+	if _, ok := os.LookupEnv("TEST_ENV"); ok {
+		sess := session.Must(session.NewSession(&aws.Config{
+			Region: aws.String("us-west-2"),
+		}))
+
+		return cloudformation.New(sess, aws.NewConfig().WithEndpoint("http://localhost:4566"))
+	}
+
+	return cloudformation.New(session.Must(session.NewSession()))
 }
