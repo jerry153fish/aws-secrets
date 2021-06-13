@@ -14,6 +14,7 @@ jobs:
           AWS_ACCOUNT_ID: "000000000000"
           AWS_ACCESS_KEY_ID: dummy-access-key
           AWS_SECRET_ACCESS_KEY: dummy-secret-key
+          AWS_EC2_METADATA_DISABLED: true
         run: |
           docker-compose -f scripts/fake-service.yaml up -d
           scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
