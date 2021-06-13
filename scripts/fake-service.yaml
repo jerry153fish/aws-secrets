@@ -5,7 +5,7 @@ services:
     image: localstack/localstack:latest
     environment:
       - EDGE_PORT=4566
-      - SERVICES=cloudformation
+      - SERVICES=cloudformation,s3
     ports:
       - "4566:4566"
     volumes:
