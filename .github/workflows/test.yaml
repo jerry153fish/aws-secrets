@@ -15,10 +15,9 @@ jobs:
           AWS_ACCESS_KEY_ID: dummy-access-key
           AWS_SECRET_ACCESS_KEY: dummy-secret-key
           AWS_EC2_METADATA_DISABLED: true
+          AWS_REGION: ap-northeast-1
         run: |
           docker-compose -f scripts/fake-service.yaml up -d
-          sudo apt-get install python3-setuptools
-          python3 -m pip install --user awscli
           scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
           ls scripts/
           mkdir build
