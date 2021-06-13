@@ -11,6 +11,7 @@ import (
 )
 
 func GetStackOutput(cf *cloudformation.CloudFormation, stackName string, outputKey string, c *cache.Cache) (string, error) {
+	// TODO: need to refactor to cache all outputs and query only for stack once very 5 min
 	cacheKey := stackName + "-" + outputKey
 
 	if x, found := c.Get(cacheKey); found {
