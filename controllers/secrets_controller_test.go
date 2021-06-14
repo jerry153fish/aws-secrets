@@ -23,6 +23,7 @@ import (
 	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -69,7 +70,7 @@ var _ = Describe("Secrets controller", func() {
 			Expect(k8sClient.Create(ctx, Secrets)).Should(Succeed())
 
 			/*
-				After creating this Secrets, let's check that the Secrets's Spec fields match what we passed in.
+				After creating this CR Secrets, let's check that the Secrets's Spec fields match what we passed in.
 			*/
 
 			secretsLookupKey := types.NamespacedName{Name: SecretName, Namespace: SecretNamespace}
@@ -88,6 +89,24 @@ var _ = Describe("Secrets controller", func() {
 			Expect(createdSecrets.Spec.PlainCreds).Should(HaveLen(2))
 			Expect(createdSecrets.Spec.PlainCreds[0].Value).Should(Equal("12345"))
 			Expect(createdSecrets.Spec.Cfn).To(BeNil())
+
+			/*
+				Next we need to check the k8s secret
+			*/
+			createdSec := &corev1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secretsLookupKey, createdSec)
+				if err != nil {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(createdSec.ObjectMeta.Name).To(Equal(SecretName))
+			Expect(createdSec.ObjectMeta.Namespace).To(Equal(SecretNamespace))
+			Expect(createdSec.Data).NotTo(BeNil())
+			Expect(createdSec.Data["testPlain1"]).To(Equal([]byte("12345")))
+			// end to It
 		})
 	})
 

@@ -20,7 +20,9 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -70,14 +72,39 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	secrets := &cfnv1alpha1.Secrets{}
 
 	if err := r.Get(ctx, req.NamespacedName, secrets); err != nil {
-		log.Error(err, "unable to fetch cfnSecrets")
-		// TODO: we'll ignore not-found errors, since they can't be fixed by an immediate
-		// requeue (we'll need to wait for a new notification), and we can get them
-		// on deleted requests.
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("Secrets resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get Secrets")
+		return ctrl.Result{}, err
 	}
 	// TODO: validate here
-	// secretName = secrets.
+	// Check if the Secret already exists, if not create a new one
+	found := &corev1.Secret{}
+	err := r.Get(ctx, types.NamespacedName{Name: secrets.Name, Namespace: secrets.Namespace}, found)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new deployment
+		sec := r.SecretsCr2Secret(secrets)
+		log.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Deployment.Name", sec.Name)
+		err = r.Create(ctx, sec)
+		if err != nil {
+			log.Error(err, "Failed to create new K8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
+			return ctrl.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get Secret")
+		return ctrl.Result{}, err
+	}
+
+	// TODO: update
+
 	return ctrl.Result{}, nil
 }
 
