@@ -25,22 +25,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/go-logr/logr"
 	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
+	utils "github.com/jerry153fish/cloudformation-secrets/utils"
 	"github.com/patrickmn/go-cache"
 )
 
 var (
-	cf   *cloudformation.CloudFormation
-	sess *session.Session
-	c    *cache.Cache = cache.New(5*time.Minute, 10*time.Minute)
+	cf *cloudformation.CloudFormation
+	c  *cache.Cache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
 // SecretsReconciler reconciles a Secrets object
 type SecretsReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -64,6 +65,17 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	slog.Info("Printing at INFO level")
 
+	cf = utils.GetCfnClient()
+
+	cfnSecret := &cfnv1alpha1.Secrets{}
+
+	if err := r.Get(ctx, req.NamespacedName, cfnSecret); err != nil {
+		slog.Error(err, "unable to fetch cfnSecrets")
+		// TODO: we'll ignore not-found errors, since they can't be fixed by an immediate
+		// requeue (we'll need to wait for a new notification), and we can get them
+		// on deleted requests.
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 	// your logic here
 
 	return ctrl.Result{}, nil
