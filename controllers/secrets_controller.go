@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -88,15 +89,15 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	found := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{Name: secrets.Name, Namespace: secrets.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
+		// Define a new Secret
 		sec := r.SecretsCr2Secret(secrets)
-		log.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Deployment.Name", sec.Name)
+		log.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
 		err = r.Create(ctx, sec)
 		if err != nil {
 			log.Error(err, "Failed to create new K8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
 			return ctrl.Result{}, err
 		}
-		// Deployment created successfully - return and requeue
+		// Secret created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get Secret")
@@ -104,6 +105,17 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// TODO: update
+	if shouldUpdate(secrets, found) {
+		log.Info("Updating a k8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
+		found.Data = getSecretData(secrets)
+		err = r.Update(ctx, found)
+		if err != nil {
+			log.Error(err, "Failed to update K8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
+			return ctrl.Result{}, err
+		}
+		// Secret created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -142,10 +154,8 @@ func getSecretData(secrets *cfnv1alpha1.Secrets) map[string][]byte {
 
 	// }
 
-	if plainCreds != nil {
-		for _, cred := range plainCreds {
-			re[cred.KeyName] = []byte(cred.Value)
-		}
+	for _, cred := range plainCreds {
+		re[cred.KeyName] = []byte(cred.Value)
 	}
 
 	if len(re) > 0 {
@@ -153,4 +163,12 @@ func getSecretData(secrets *cfnv1alpha1.Secrets) map[string][]byte {
 	}
 
 	return nil
+}
+
+func shouldUpdate(secrets *cfnv1alpha1.Secrets, k8sSec *corev1.Secret) bool {
+	k8sSecData := k8sSec.Data
+
+	secretsData := getSecretData(secrets)
+
+	return !reflect.DeepEqual(secretsData, k8sSecData)
 }
