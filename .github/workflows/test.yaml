@@ -27,5 +27,6 @@ jobs:
           mkdir build
           aws cloudformation create-stack --endpoint-url http://localhost:4566 --stack-name myteststack --template-body file://scripts/mock-s3-cfn-template.yaml > build/create-stack-result.json
           cat build/create-stack-result.json
+          go clean -modcache
           go mod download
           make test
