@@ -38,8 +38,8 @@ import (
 )
 
 var (
-	cf *cloudformation.CloudFormation
-	c  *cache.Cache = cache.New(5*time.Minute, 10*time.Minute)
+	cf     *cloudformation.CloudFormation
+	gcache *cache.Cache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
 // SecretsReconciler reconciles a Secrets object
@@ -90,7 +90,7 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	err := r.Get(ctx, types.NamespacedName{Name: secrets.Name, Namespace: secrets.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new Secret
-		sec := r.SecretsCr2Secret(secrets)
+		sec := r.SecretsCr2Secret(secrets, cf)
 		log.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
 		err = r.Create(ctx, sec)
 		if err != nil {
@@ -105,9 +105,9 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// TODO: update
-	if shouldUpdate(secrets, found) {
+	if shouldUpdate(secrets, found, cf) {
 		log.Info("Updating a k8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
-		found.Data = getSecretData(secrets)
+		found.Data = getSecretData(secrets, cf)
 		err = r.Update(ctx, found)
 		if err != nil {
 			log.Error(err, "Failed to update K8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
@@ -127,7 +127,7 @@ func (r *SecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets) *corev1.Secret {
+func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormation) *corev1.Secret {
 	// TODO: verify
 	// TODO: more metadata eg labels
 
@@ -136,7 +136,7 @@ func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets) *core
 			Name:      secrets.Name,
 			Namespace: secrets.Namespace,
 		},
-		Data: getSecretData(secrets),
+		Data: getSecretData(secrets, cf),
 	}
 
 	// Set Secrets CR as the owner and controller
@@ -144,15 +144,20 @@ func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets) *core
 	return sec
 }
 
-func getSecretData(secrets *cfnv1alpha1.Secrets) map[string][]byte {
-	// cfn := secrets.Spec.Cfn
+func getSecretData(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormation) map[string][]byte {
+	cfn := secrets.Spec.Cfn
 	plainCreds := secrets.Spec.PlainCreds
 
 	re := make(map[string][]byte)
 
-	// if cfn != nil {
-
-	// }
+	for _, c := range cfn {
+		cfnValue, err := utils.GetStackOutput(cf, c.StackName, c.OutputKey, gcache)
+		if err != nil {
+			re[c.KeyName] = []byte(cfnValue)
+		} else {
+			// TODO: improvement
+		}
+	}
 
 	for _, cred := range plainCreds {
 		re[cred.KeyName] = []byte(cred.Value)
@@ -165,10 +170,10 @@ func getSecretData(secrets *cfnv1alpha1.Secrets) map[string][]byte {
 	return nil
 }
 
-func shouldUpdate(secrets *cfnv1alpha1.Secrets, k8sSec *corev1.Secret) bool {
+func shouldUpdate(secrets *cfnv1alpha1.Secrets, k8sSec *corev1.Secret, cf *cloudformation.CloudFormation) bool {
 	k8sSecData := k8sSec.Data
 
-	secretsData := getSecretData(secrets)
+	secretsData := getSecretData(secrets, cf)
 
 	return !reflect.DeepEqual(secretsData, k8sSecData)
 }

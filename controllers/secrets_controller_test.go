@@ -79,10 +79,7 @@ var _ = Describe("Secrets controller", func() {
 			// We'll need to retry getting this newly created CronJob, given that creation may not immediately happen.
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, secretsLookupKey, createdSecrets)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
 			Expect(createdSecrets.Spec.SecretName).Should(Equal(SecretName))
@@ -91,15 +88,12 @@ var _ = Describe("Secrets controller", func() {
 			Expect(createdSecrets.Spec.Cfn).To(BeNil())
 
 			/*
-				Next we need to check the k8s secret
+				Next we need to check the created k8s secret
 			*/
 			createdSec := &corev1.Secret{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, secretsLookupKey, createdSec)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
 			Expect(createdSec.ObjectMeta.Name).To(Equal(SecretName))
