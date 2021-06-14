@@ -1,11 +1,10 @@
 package utils
 
 import (
+	"os"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,15 +18,12 @@ func TestSecretType(t *testing.T) {
 
 var _ = Describe("Cloudformation Utils", func() {
 	var (
-		cf   *cloudformation.CloudFormation
-		sess *session.Session
-		c    *cache.Cache
+		cf *cloudformation.CloudFormation
+		c  *cache.Cache
 	)
 	BeforeEach(func() {
-		sess = session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-west-2"),
-		}))
-		cf = cloudformation.New(sess, aws.NewConfig().WithEndpoint("http://localhost:4566"))
+		os.Setenv("TEST_ENV", "YES")
+		cf = GetCfnClient()
 		c = cache.New(5*time.Minute, 10*time.Minute)
 	})
 

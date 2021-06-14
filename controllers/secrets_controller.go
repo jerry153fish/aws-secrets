@@ -18,13 +18,23 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
+	"github.com/patrickmn/go-cache"
+)
+
+var (
+	cf   *cloudformation.CloudFormation
+	sess *session.Session
+	c    *cache.Cache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
 // SecretsReconciler reconciles a Secrets object
