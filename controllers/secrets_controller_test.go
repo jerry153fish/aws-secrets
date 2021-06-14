@@ -87,6 +87,7 @@ var _ = Describe("Secrets controller", func() {
 			Expect(createdSecrets.Spec.SecretName).Should(Equal(SecretName))
 			Expect(createdSecrets.Spec.PlainCreds).Should(HaveLen(2))
 			Expect(createdSecrets.Spec.PlainCreds[0].Value).Should(Equal("12345"))
+			Expect(createdSecrets.Spec.Cfn).To(BeNil())
 		})
 	})
 

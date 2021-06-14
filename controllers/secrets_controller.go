@@ -30,6 +30,8 @@ import (
 	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
 	utils "github.com/jerry153fish/cloudformation-secrets/utils"
 	"github.com/patrickmn/go-cache"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -61,23 +63,21 @@ type SecretsReconciler struct {
 func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	slog := log.Log.WithValues("cfnSecrets", req.NamespacedName)
-
-	slog.Info("Printing at INFO level")
+	log := r.Log.WithValues("cfnSecrets", req.NamespacedName)
 
 	cf = utils.GetCfnClient()
 
-	cfnSecret := &cfnv1alpha1.Secrets{}
+	secrets := &cfnv1alpha1.Secrets{}
 
-	if err := r.Get(ctx, req.NamespacedName, cfnSecret); err != nil {
-		slog.Error(err, "unable to fetch cfnSecrets")
+	if err := r.Get(ctx, req.NamespacedName, secrets); err != nil {
+		log.Error(err, "unable to fetch cfnSecrets")
 		// TODO: we'll ignore not-found errors, since they can't be fixed by an immediate
 		// requeue (we'll need to wait for a new notification), and we can get them
 		// on deleted requests.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	// your logic here
-
+	// TODO: validate here
+	// secretName = secrets.
 	return ctrl.Result{}, nil
 }
 
@@ -86,4 +86,44 @@ func (r *SecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&cfnv1alpha1.Secrets{}).
 		Complete(r)
+}
+
+func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets) *corev1.Secret {
+	// TODO: verify
+	// TODO: more metadata eg labels
+
+	sec := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secrets.Name,
+			Namespace: secrets.Namespace,
+		},
+		Data: getSecretData(secrets),
+	}
+
+	// Set Secrets CR as the owner and controller
+	ctrl.SetControllerReference(secrets, sec, r.Scheme)
+	return sec
+}
+
+func getSecretData(secrets *cfnv1alpha1.Secrets) map[string][]byte {
+	// cfn := secrets.Spec.Cfn
+	plainCreds := secrets.Spec.PlainCreds
+
+	re := make(map[string][]byte)
+
+	// if cfn != nil {
+
+	// }
+
+	if plainCreds != nil {
+		for _, cred := range plainCreds {
+			re[cred.KeyName] = []byte(cred.Value)
+		}
+	}
+
+	if len(re) > 0 {
+		return re
+	}
+
+	return nil
 }
