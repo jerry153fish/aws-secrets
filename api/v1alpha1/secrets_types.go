@@ -30,7 +30,8 @@ type SecretsSpec struct {
 
 	// Foo is an example field of Secrets. Edit secrets_types.go to remove/update
 	SecretName string                 `json:"secretName,omitempty"`
-	Cfn        []CloudformationOutput `json:"cfn"`
+	Cfn        []CloudformationOutput `json:"cfn,omitempty"`
+	PlainCreds []PlainCred            `json:"plainCreds,omitempty"`
 }
 
 type CloudformationOutput struct {
@@ -42,6 +43,16 @@ type CloudformationOutput struct {
 
 	//+kubebuilder:validation:MinLength=1
 	OutputKey string `json:"outputKey"`
+
+	Type string `json:"type,omitempty"`
+}
+
+type PlainCred struct {
+	//+kubebuilder:validation:MinLength=1
+	KeyName string `json:"key"`
+
+	//+kubebuilder:validation:MinLength=1
+	Value string `json:"value"`
 
 	Type string `json:"type,omitempty"`
 }
