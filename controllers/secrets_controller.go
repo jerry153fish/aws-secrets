@@ -18,10 +18,12 @@ package controllers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -73,7 +75,7 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	secrets := &cfnv1alpha1.Secrets{}
 
 	if err := r.Get(ctx, req.NamespacedName, secrets); err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -88,9 +90,14 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Check if the Secret already exists, if not create a new one
 	found := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{Name: secrets.Name, Namespace: secrets.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && apiErrors.IsNotFound(err) {
 		// Define a new Secret
-		sec := r.SecretsCr2Secret(secrets, cf)
+		sec, err := r.SecretsCr2Secret(secrets, cf)
+		if err != nil {
+			log.Error(err, "Failed to convert secrets", "Secret.Namespace", secrets.Namespace, "Secret.Name", secrets.Name)
+			return ctrl.Result{}, err
+		}
+
 		log.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
 		err = r.Create(ctx, sec)
 		if err != nil {
@@ -104,10 +111,15 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	// TODO: update
 	if shouldUpdate(secrets, found, cf) {
 		log.Info("Updating a k8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
-		found.Data = getSecretData(secrets, cf)
+		data, err := getSecretData(secrets, cf)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		found.Data = data
 		err = r.Update(ctx, found)
 		if err != nil {
 			log.Error(err, "Failed to update K8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
@@ -127,24 +139,27 @@ func (r *SecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormation) *corev1.Secret {
+func (r *SecretsReconciler) SecretsCr2Secret(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormation) (*corev1.Secret, error) {
 	// TODO: verify
 	// TODO: more metadata eg labels
-
+	data, err := getSecretData(secrets, cf)
+	if err != nil {
+		return nil, err
+	}
 	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secrets.Name,
 			Namespace: secrets.Namespace,
 		},
-		Data: getSecretData(secrets, cf),
+		Data: data,
 	}
 
 	// Set Secrets CR as the owner and controller
 	ctrl.SetControllerReference(secrets, sec, r.Scheme)
-	return sec
+	return sec, nil
 }
 
-func getSecretData(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormation) map[string][]byte {
+func getSecretData(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormation) (map[string][]byte, error) {
 	cfn := secrets.Spec.Cfn
 	plainCreds := secrets.Spec.PlainCreds
 
@@ -155,7 +170,7 @@ func getSecretData(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormati
 		if err != nil {
 			re[c.KeyName] = []byte(cfnValue)
 		} else {
-			// TODO: improvement
+			return nil, errors.New(fmt.Sprintf("Can not get Stack: %s outputKey %s", c.StackName, c.OutputKey))
 		}
 	}
 
@@ -164,16 +179,22 @@ func getSecretData(secrets *cfnv1alpha1.Secrets, cf *cloudformation.CloudFormati
 	}
 
 	if len(re) > 0 {
-		return re
+		return re, nil
 	}
 
-	return nil
+	return nil, errors.New(fmt.Sprintf("Can not find any secret for: %s in %s", secrets.Name, secrets.Namespace))
 }
 
 func shouldUpdate(secrets *cfnv1alpha1.Secrets, k8sSec *corev1.Secret, cf *cloudformation.CloudFormation) bool {
 	k8sSecData := k8sSec.Data
 
-	secretsData := getSecretData(secrets, cf)
+	data, err := getSecretData(secrets, cf)
+
+	if err != nil {
+		return false
+	}
+
+	secretsData := data
 
 	return !reflect.DeepEqual(secretsData, k8sSecData)
 }
