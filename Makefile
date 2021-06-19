@@ -102,6 +102,11 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
+docker-minikube-build:
+	eval $(minikube docker-env)
+	docker build -t ${IMG} .
+	eval $(minikube docker-env -u)
+
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
@@ -120,11 +125,11 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
-deploy-minikube: kustomize
+deploy-minikube: manifests kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/minikube | kubectl apply -f -
 
-redeploy-minikube: kustomize undeploy docker-build deploy-minikube
+redeploy-minikube: kustomize undeploy docker-minikube-build deploy-minikube
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.

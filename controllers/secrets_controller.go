@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/go-logr/logr"
 	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
 	utils "github.com/jerry153fish/cloudformation-secrets/utils"
 	"github.com/patrickmn/go-cache"
@@ -48,13 +47,12 @@ var (
 type SecretsReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Log    logr.Logger
 }
 
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cfn.jerry153fish.com,resources=secrets/finalizers,verbs=update
-//+kubebuilder:rbac:groups=,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -66,9 +64,7 @@ type SecretsReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	log := r.Log.WithValues("cfnSecrets", req.NamespacedName)
+	clog := log.FromContext(ctx)
 
 	cf = utils.GetCfnClient()
 
@@ -79,11 +75,11 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("Secrets resource not found. Ignoring since object must be deleted")
+			clog.Info("Secrets resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get Secrets")
+		clog.Error(err, "Failed to get Secrets")
 		return ctrl.Result{}, err
 	}
 	// TODO: validate here
@@ -94,25 +90,25 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		// Define a new Secret
 		sec, err := r.SecretsCr2Secret(secrets, cf)
 		if err != nil {
-			log.Error(err, "Failed to convert secrets", "Secret.Namespace", secrets.Namespace, "Secret.Name", secrets.Name)
+			clog.Error(err, "Failed to convert secrets", "Secret.Namespace", secrets.Namespace, "Secret.Name", secrets.Name)
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
+		clog.Info("Creating a new k8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
 		err = r.Create(ctx, sec)
 		if err != nil {
-			log.Error(err, "Failed to create new K8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
+			clog.Error(err, "Failed to create new K8s Secret", "Secret.Namespace", sec.Namespace, "Secret.Name", sec.Name)
 			return ctrl.Result{}, err
 		}
 		// Secret created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
-		log.Error(err, "Failed to get Secret")
+		clog.Error(err, "Failed to get Secret")
 		return ctrl.Result{}, err
 	}
 
 	if shouldUpdate(secrets, found, cf) {
-		log.Info("Updating a k8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
+		clog.Info("Updating a k8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
 		data, err := getSecretData(secrets, cf)
 
 		if err != nil {
@@ -122,7 +118,7 @@ func (r *SecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		found.Data = data
 		err = r.Update(ctx, found)
 		if err != nil {
-			log.Error(err, "Failed to update K8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
+			clog.Error(err, "Failed to update K8s Secret", "Secret.Namespace", found.Namespace, "Secret.Name", found.Name)
 			return ctrl.Result{}, err
 		}
 		// Secret created successfully - return and requeue
