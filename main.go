@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
-	"github.com/jerry153fish/cloudformation-secrets/controllers"
+	cfnv1alpha1 "github.com/jerry153fish/aws-secrets/api/v1alpha1"
+	"github.com/jerry153fish/aws-secrets/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

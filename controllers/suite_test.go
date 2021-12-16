@@ -32,7 +32,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
+	cfnv1alpha1 "github.com/jerry153fish/aws-secrets/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

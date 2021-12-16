@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
+	cfnv1alpha1 "github.com/jerry153fish/aws-secrets/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"

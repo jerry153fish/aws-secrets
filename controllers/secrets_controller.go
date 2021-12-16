@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	cfnv1alpha1 "github.com/jerry153fish/cloudformation-secrets/api/v1alpha1"
-	utils "github.com/jerry153fish/cloudformation-secrets/utils"
+	cfnv1alpha1 "github.com/jerry153fish/aws-secrets/api/v1alpha1"
+	utils "github.com/jerry153fish/aws-secrets/utils"
 	"github.com/patrickmn/go-cache"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

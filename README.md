@@ -1,7 +1,7 @@
-[![Docker Repository on Quay](https://quay.io/repository/jerry153fish/cloudformation-secrets/status "Docker Repository on Quay")](https://quay.io/repository/jerry153fish/cloudformation-secrets)
-![Github Action](https://github.com/jerry153fish/cloudformation-secrets/actions/workflows/test.yaml/badge.svg)
+[![Docker Repository on Quay](https://quay.io/repository/jerry153fish/aws-secrets/status "Docker Repository on Quay")](https://quay.io/repository/jerry153fish/aws-secrets)
+![Github Action](https://github.com/jerry153fish/aws-secrets/actions/workflows/test.yaml/badge.svg)
 
-## cloudformation-secrets
+## aws-secrets
 
 A Kubernetes operator to convert cloudformation outputs to k8s secrets.
 

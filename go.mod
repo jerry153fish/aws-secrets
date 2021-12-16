@@ -1,4 +1,4 @@
-module github.com/jerry153fish/cloudformation-secrets
+module github.com/jerry153fish/aws-secrets
 
 go 1.16
 

@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-  name: cloudformation-secrets-system
+  name: aws-secrets-system
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -102,14 +102,14 @@ status:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cloudformation-secrets-controller-manager
-  namespace: cloudformation-secrets-system
+  name: aws-secrets-controller-manager
+  namespace: aws-secrets-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: cloudformation-secrets-leader-election-role
-  namespace: cloudformation-secrets-system
+  name: aws-secrets-leader-election-role
+  namespace: aws-secrets-system
 rules:
   - apiGroups:
       - ""
@@ -146,7 +146,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cloudformation-secrets-manager-role
+  name: aws-secrets-manager-role
 rules:
   - apiGroups:
       - ""
@@ -190,7 +190,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cloudformation-secrets-metrics-reader
+  name: aws-secrets-metrics-reader
 rules:
   - nonResourceURLs:
       - /metrics
@@ -200,7 +200,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cloudformation-secrets-proxy-role
+  name: aws-secrets-proxy-role
 rules:
   - apiGroups:
       - authentication.k8s.io
@@ -218,42 +218,42 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: cloudformation-secrets-leader-election-rolebinding
-  namespace: cloudformation-secrets-system
+  name: aws-secrets-leader-election-rolebinding
+  namespace: aws-secrets-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: cloudformation-secrets-leader-election-role
+  name: aws-secrets-leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: cloudformation-secrets-controller-manager
-    namespace: cloudformation-secrets-system
+    name: aws-secrets-controller-manager
+    namespace: aws-secrets-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: cloudformation-secrets-manager-rolebinding
+  name: aws-secrets-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cloudformation-secrets-manager-role
+  name: aws-secrets-manager-role
 subjects:
   - kind: ServiceAccount
-    name: cloudformation-secrets-controller-manager
-    namespace: cloudformation-secrets-system
+    name: aws-secrets-controller-manager
+    namespace: aws-secrets-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: cloudformation-secrets-proxy-rolebinding
+  name: aws-secrets-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cloudformation-secrets-proxy-role
+  name: aws-secrets-proxy-role
 subjects:
   - kind: ServiceAccount
-    name: cloudformation-secrets-controller-manager
-    namespace: cloudformation-secrets-system
+    name: aws-secrets-controller-manager
+    namespace: aws-secrets-system
 ---
 apiVersion: v1
 data:
@@ -271,16 +271,16 @@ data:
       resourceName: a88badc0.jerry153fish.com
 kind: ConfigMap
 metadata:
-  name: cloudformation-secrets-manager-config
-  namespace: cloudformation-secrets-system
+  name: aws-secrets-manager-config
+  namespace: aws-secrets-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: cloudformation-secrets-controller-manager-metrics-service
-  namespace: cloudformation-secrets-system
+  name: aws-secrets-controller-manager-metrics-service
+  namespace: aws-secrets-system
 spec:
   ports:
     - name: https
@@ -294,8 +294,8 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: cloudformation-secrets-controller-manager
-  namespace: cloudformation-secrets-system
+  name: aws-secrets-controller-manager
+  namespace: aws-secrets-system
 spec:
   replicas: 1
   selector:
@@ -323,7 +323,7 @@ spec:
             - --leader-elect
           command:
             - /manager
-          image: quay.io/jerry153fish/cloudformation-secrets:latest
+          image: quay.io/jerry153fish/aws-secrets:latest
           livenessProbe:
             httpGet:
               path: /healthz
@@ -348,5 +348,5 @@ spec:
             allowPrivilegeEscalation: false
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: cloudformation-secrets-controller-manager
+      serviceAccountName: aws-secrets-controller-manager
       terminationGracePeriodSeconds: 10
