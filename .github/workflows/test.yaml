@@ -27,4 +27,13 @@ jobs:
           mkdir build
           aws cloudformation create-stack --endpoint-url http://localhost:4566 --stack-name myteststack --template-body file://scripts/mock-s3-cfn-template.yaml > build/create-stack-result.json
           cat build/create-stack-result.json
-          make test
+          make docker-build IMG=jerry153fish/operator:latest
+      - uses: anchore/scan-action@v3
+        id: scan
+        with:
+          image: "jerry153fish/operator:latest"
+          acs-report-enable: true
+      - name: upload Anchore scan SARIF report
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
