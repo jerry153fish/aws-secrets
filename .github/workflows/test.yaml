@@ -3,37 +3,52 @@ on: [push]
 jobs:
   Tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
-      - name: Set up golang
-        uses: actions/setup-go@v2
-      - name: Run Unit tests
-        env:
-          DEFAULT_REGION: ap-northeast-1
-          AWS_ACCOUNT_ID: "000000000000"
-          AWS_ACCESS_KEY_ID: dummy-access-key
-          AWS_SECRET_ACCESS_KEY: dummy-secret-key
-          AWS_EC2_METADATA_DISABLED: true
-          AWS_REGION: ap-northeast-1
-        run: |
-          docker-compose -f scripts/fake-service.yaml up -d
-          scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
-          until $(curl --silent --fail http://localhost:4566/health | grep "\"cloudformation\": \"running\"" > /dev/null); do
-              printf '.'
-              sleep 5
-          done
-          mkdir build
-          aws cloudformation create-stack --endpoint-url http://localhost:4566 --stack-name myteststack --template-body file://scripts/mock-s3-cfn-template.yaml > build/create-stack-result.json
-          cat build/create-stack-result.json
-          make docker-build IMG=jerry153fish/operator:latest
-      - uses: anchore/scan-action@v3
-        id: scan
+
+      - name: Checkout GitHub Actions Repo
+        uses: actions/checkout@v2
         with:
-          image: "jerry153fish/operator:latest"
-          acs-report-enable: true
-      - name: upload Anchore scan SARIF report
-        uses: github/codeql-action/upload-sarif@v1
+          repository: jerry153fish/github-actions
+          path: .github/actions
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Scan docker images
+        id: docker_image_scan
+        uses: ./.github/actions/docker-image-scan
         with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
+          image: "nginx"
+          severity-cutoff: high
+      # - name: Set up golang
+      #   uses: actions/setup-go@v2
+      # - name: Run Unit tests
+      #   env:
+      #     DEFAULT_REGION: ap-northeast-1
+      #     AWS_ACCOUNT_ID: "000000000000"
+      #     AWS_ACCESS_KEY_ID: dummy-access-key
+      #     AWS_SECRET_ACCESS_KEY: dummy-secret-key
+      #     AWS_EC2_METADATA_DISABLED: true
+      #     AWS_REGION: ap-northeast-1
+      #   run: |
+      #     set -x
+      #     # docker-compose -f scripts/fake-service.yaml up -d
+      #     # scripts/wait-for.sh localhost:4566 -t 300 -- echo "localstack up"
+      #     # until $(curl --silent --fail http://localhost:4566/health | grep "\"cloudformation\": \"running\"" > /dev/null); do
+      #     #     printf '.'
+      #     #     sleep 5
+      #     # done
+      #     # mkdir build
+      #     # aws cloudformation create-stack --endpoint-url http://localhost:4566 --stack-name myteststack --template-body file://scripts/mock-s3-cfn-template.yaml > build/create-stack-result.json
+      #     # cat build/create-stack-result.json
+      #     make docker-build IMG=jerry153fish/operator:latest
+      # - uses: ./.github/actions/docker-image-scan
+      #   id: scan
+      #   with:
+      #     image: "jerry153fish/operator:latest"
+      #     acs-report-enable: true
+      # - name: upload Anchore scan SARIF report
+      #   uses: github/codeql-action/upload-sarif@v1
+      #   with:
+      #     sarif_file: ${{ steps.scan.outputs.sarif }}
