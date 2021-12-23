@@ -16,11 +16,15 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Scan docker images
-        id: docker_image_scan
+        id: scan
         uses: ./.github/actions/docker-image-scan
         with:
           image: "nginx"
-          severity-cutoff: high
+          failed-cves: CVE-2021-33574
+
+      - name: cat result
+        if: always()
+        run: cat ${{ steps.scan.outputs.file }}
       # - name: Set up golang
       #   uses: actions/setup-go@v2
       # - name: Run Unit tests
